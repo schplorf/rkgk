@@ -1,0 +1,209 @@
+https://github.com/ApoorvaJ/Papaya/blob/master/src/libpapaya/pagl.h 
+VERY INTERESTING OPENGL AND IMGUI
+
+
+
+
+#include <iostream>
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_glfw.h"
+#include "../imgui/imgui_impl_opengl3.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
+#define EASYTAB_IMPLEMENTATION
+#include "easytab.h"
+
+
+static void GlfwErrorCallback(const int error, const char* description)
+{
+	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+
+static unsigned int CompileShader(const char* source, GLenum type)
+{
+	const unsigned int shader = glCreateShader(type);
+	glShaderSource(shader, 1, &source, nullptr);
+	glCompileShader(shader);
+
+	int result;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+	if (result == GL_FALSE)
+	{
+		int length;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+		const auto msg = static_cast<char*>(alloca(length));
+		glGetShaderInfoLog(shader, length, &length, msg);
+		std::cout << "Failed shader compilation" << std::endl;
+		std::cout << msg << std::endl;
+		glDeleteShader(shader);
+		return 0;
+	}
+
+	return shader;
+}
+
+static unsigned int CreateShader(const char* vertexShader, const char* fragmentShader)
+{
+	const unsigned int program = glCreateProgram();
+	const unsigned int vs = CompileShader(vertexShader, GL_VERTEX_SHADER);
+	const unsigned int fs = CompileShader(fragmentShader, GL_FRAGMENT_SHADER);
+
+	glAttachShader(program, vs);
+	glAttachShader(program, fs);
+	glLinkProgram(program);
+	glValidateProgram(program);
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+	return program;
+}
+
+int main()
+{
+	glfwSetErrorCallback(GlfwErrorCallback);
+	if (!glfwInit()) return -1;
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
+	const int w = 1280, h = 720;
+	GLFWwindow* window = glfwCreateWindow(w, h, "rkgk", nullptr, nullptr);
+	if (!window)
+	{
+		glfwTerminate();
+		return -1;
+	}
+
+	glfwMakeContextCurrent(window);
+	glfwSwapInterval(1); // Enable v-sync
+
+	if (glewInit() != GLEW_OK) return -1;
+
+	std::cout << glGetString(GL_VERSION) << std::endl;
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330 core");
+
+	constexpr auto clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	constexpr float square[8] = {
+		-0.5f, -0.5f,
+		0.5f, -0.5f,
+		0.5f, 0.5f,
+		-0.5f, 0.5f
+	};
+
+	unsigned int indices[6]
+	{
+		0, 1, 2,
+		2, 3, 0
+	};
+
+	unsigned int buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(square[0]) * 2, nullptr);
+
+	unsigned int ibo;
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	const auto vertexShader = R"glsl(
+	#version 330 core
+	#extension GL_ARB_separate_shader_objects : enable
+
+	layout(location = 0) in vec4 position;
+	
+	void main(){
+	   gl_Position = position;
+	}
+	)glsl";
+	const auto fragmentShader = R"glsl(
+	#version 330 core
+	#extension GL_ARB_separate_shader_objects : enable
+
+	layout(location = 0) out vec4 color;
+	
+	void main(){
+	   color = vec4(1.0, 0.0, 0.0, 1.0);
+	}
+	)glsl";
+	unsigned int shader = CreateShader(vertexShader, fragmentShader);
+	glUseProgram(shader);
+
+	HWND hwnd = glfwGetWin32Window(window);
+	EasyTab_Load(hwnd);
+
+	float xx = 0;
+
+	while (!glfwWindowShouldClose(window))
+	{
+		int x = 0, y = 0;
+		float pressure = 0;
+		MSG msg;
+		// https://github.com/glfw/glfw/issues/403#issuecomment-974796203
+		while (PeekMessageW(&msg, hwnd, WT_PACKET, WT_MAX, PM_REMOVE))
+		{
+			if (EasyTab_HandleEvent(msg.hwnd, msg.message, msg.lParam, msg.wParam) == EASYTAB_OK)
+			{
+				pressure = EasyTab->Pressure;
+				x = EasyTab->PosX;
+				y = EasyTab->PosY;
+			}
+		}
+		glfwPollEvents();
+
+		// Start the Dear ImGui frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::ShowDemoWindow();
+		ImGui::DragFloat("aaa", &xx);
+		ImGui::Text("x: %i, y: %i, pressure: %.2f", x, y, pressure);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		auto drawlist = ImGui::GetForegroundDrawList();
+		drawlist->AddCircleFilled(ImVec2(x,y), 5, IM_COL32(0, 0, 255, 255));
+
+		// Rendering
+		ImGui::Render();
+
+		int displayW, displayH;
+		glfwGetFramebufferSize(window, &displayW, &displayH);
+		glViewport(0, 0, displayW, displayH);
+
+		glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+		
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glfwSwapBuffers(window);
+	}
+
+	glDeleteProgram(shader);
+
+	// Cleanup
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	glfwTerminate();
+	return 0;
+}

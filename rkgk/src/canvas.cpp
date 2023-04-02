@@ -7,6 +7,7 @@
 #include "cmath"
 
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 #include "brush.h"
 
@@ -87,10 +88,11 @@ void canvas::handle_inputs(const ImGuiIO& io, float pressure)
 		stroking_ = true;
 		prev_pressure_ = pressure;
 		//layers[cur_layer].clear(color_white);
-		dab(stroke_pos_.x, stroke_pos_.y,
-			brushes[cur_brush].get_size(pressure), color(cur_color[0] * 255, cur_color[1] * 255, cur_color[2] * 255,
+		dab(stroke_pos_.x, stroke_pos_.y, pressure
+			,brushes[cur_brush], color(cur_color[0] * 255, cur_color[1] * 255, cur_color[2] * 255,
 				brushes[cur_brush].get_alpha(pressure)));
 		invalidate_texture();
+		glfwSwapInterval(0); // disable v-sync, we want many inputs as we can get so our lines aren't choppy
 		return;
 	}
 
@@ -116,7 +118,7 @@ void canvas::handle_inputs(const ImGuiIO& io, float pressure)
 			nx = (f * new_pos.x) + ((1 - f) * stroke_pos_.x);
 			ny = (f * new_pos.y) + ((1 - f) * stroke_pos_.y);
 			np = f * pressure + (1 - f) * prev_pressure_;
-			dab(nx, ny, brush.get_size(np), color(cur_color[0] * 255, cur_color[1] * 255, cur_color[2] * 255, brush.get_alpha(np)));
+			dab(nx, ny, np, brush, color(cur_color[0] * 255, cur_color[1] * 255, cur_color[2] * 255, brush.get_alpha(np)));
 		}
 
 		stroke_pos_ = ImVec2(nx, ny);
@@ -129,44 +131,41 @@ void canvas::handle_inputs(const ImGuiIO& io, float pressure)
 	{
 		delete[]buffer_;
 		stroking_ = false;
+		glfwSwapInterval(1); // reenable v-sync, waste of gpu power to have it off while we're not painting
 	}
 }
-float easeInQuart(float x) {
-	return x * x;
-}
 
-void canvas::dab(float cx, float cy, const float size, color new_color)
+void canvas::dab(const float cx, const  float cy, const  float pressure, const brush& brush, const color new_color)
 {
-	float r = size / 2;
-	cx = p1;
-	cy = p2;
-	cx--;
-	cy--;
-	float cpx = floor(cx) + .5f;
-	float cpy = floor(cy) + .5f;
-	float fx = floor(cx);
-	float fy = floor(cy);
-	float ox = cpx - cx;
-	float oy = cpy - cy;
-	//printf("ox %f, oy %f\n", ox, oy);
-	//printf("cpx %f, cpy %f\n", cpx, cpy);
-	//printf("fx %f, fy %f\n", fx, fy);
-	for (float x = cpx - size; x <= cpx + size; x++)
+	const float size = brush.get_size(pressure);
+	float r;
+	// arbitrary value fudging to make small brush sizes look nice
+	if (size < 2)
 	{
-		for (float y = cpy - size; y <= cpy + size; y++)
+		p3 = size / 2;
+		r = 1;
+	}
+	else
+	{
+		r = size / 2;
+	}
+
+	const float cpx = floor(cx) + .5f;
+	const float cpy = floor(cy) + .5f;
+	for (float x = cpx - r; x <= cpx + r; x++)
+	{
+		for (float y = cpy - r; y <= cpy + r; y++)
 		{
-			auto v1 = ImVec2(x, y);
-			auto v2 = ImVec2(cx, cy);
+			const auto v1 = ImVec2(x, y);
+			const auto v2 = ImVec2(cx, cy);
 			float dist = distance(v1, v2);
-			if (dist > size)continue;
-			float alpha = std::max(0.0f, std::min(255.0f, (1 - (dist / size)) * new_color.a * p3));
-			//printf("%f, ",alpha);
-			int rx = lround(x);
-			int ry = lround(y);
-			set_pixel(rx, ry,
-				color(new_color.r, new_color.g, new_color.b, alpha));
+			if (dist > r) continue;
+			const float aa = r - lerp(r, dist, brush.aa);
+			const float alpha = std::max(0.0f, std::min((float)new_color.a, (aa * 255) * p3));
+			const int rx = lround(x);
+			const int ry = lround(y);
+			set_pixel(rx, ry, color(new_color.r, new_color.g, new_color.b, alpha));
 		}
-		//printf("\n");
 	}
 }
 

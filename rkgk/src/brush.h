@@ -7,7 +7,7 @@ struct brush
 	float size = 1, min_size = 1;
 	int opacity = 255, min_opacity = 0;
 	bool size_pressure = false, opacity_pressure = false;
-	float spacing = .05f;
+	float spacing = .05f, aa = 1;
 
 	explicit brush(const std::string& name)
 	{

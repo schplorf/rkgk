@@ -41,7 +41,6 @@ int main()
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1); // Enable v-sync
 
 	if (glewInit() != GLEW_OK) return -1;
 
@@ -132,7 +131,7 @@ int main()
 		ImGui::DragFloat("p1", &cur_canvas.p1, 0.01f, -5, 5);
 		ImGui::DragFloat("p2", &cur_canvas.p2, 0.01f, -5, 5);
 		ImGui::DragFloat("p3", &cur_canvas.p3, 0.01f, -5, 5);
-		ImGui::DragFloat("p4", &cur_canvas.p4, 0.01f, -5, 5);
+		ImGui::DragFloat("p4", &cur_canvas.p4, 0.01f, -5, 45);
 		ImGui::DragFloat("p5", &cur_canvas.p5, 0.01f, -5, 5);
 
 		if (ImGui::Button("Reset canvas view"))
@@ -178,15 +177,16 @@ int main()
 			}
 		}
 		auto& brush = brushes[cur_brush];
-		ImGui::SliderFloat("Size", &brush.size, 0.1f, 50);
+		ImGui::DragFloat("Size", &brush.size, 0.1f, 0.1f, 100);
 		ImGui::Checkbox("Size pressure", &brush.size_pressure);
 		if(brush.size_pressure)
 		{
-		ImGui::SliderFloat("Min size", &brush.min_size, 1, 100);
+		ImGui::SliderFloat("Min size", &brush.min_size, 0.1f, 100);
 		}
 		ImGui::SliderInt("Opacity", &brush.opacity, 1, 255);
 		ImGui::Checkbox("Opacity pressure", &brush.opacity_pressure);
 		ImGui::SliderFloat("Spacing", &brush.spacing, 0.01f, 1.0f);
+		ImGui::SliderFloat("Anti-aliasing", &brush.aa, 0.1f, 1.0f);
 		ImGui::End();
 
 		ImGui::Begin("Color picker");
@@ -197,7 +197,7 @@ int main()
 
 		cur_canvas.render(drawlist);
 
-		drawlist->AddCircle(io.MousePos, 5, IM_COL32(0, 0, 255, 255));
+		drawlist->AddCircle(io.MousePos, brushes[cur_brush].size * cur_canvas.matrix.m11, IM_COL32(0, 0, 0, 255));
 
 		// Rendering
 		ImGui::Render();

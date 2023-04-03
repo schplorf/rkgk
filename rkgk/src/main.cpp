@@ -7,13 +7,15 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#define EASYTAB_IMPLEMENTATION
+#include "easytab.h"
+
 #include "canvas.h"
 #include "brush.h"
 #include "globals.h"
 #include "mathstuff.h"
+#include "gui.h"
 
-#define EASYTAB_IMPLEMENTATION
-#include "easytab.h"
 
 canvas cur_canvas(1024, 1024, "foobar");
 ImVector<brush> brushes;
@@ -32,7 +34,7 @@ int main()
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
+	
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "rkgk", nullptr, nullptr);
 	if (!window)
 	{
@@ -69,6 +71,8 @@ int main()
 	
 	brushes.push_back(brush("hard round"));
 
+	setup_gui_style(io);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		MSG msg;
@@ -93,6 +97,7 @@ int main()
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
 
 		if (!io.WantCaptureMouse)
 		{
@@ -133,6 +138,7 @@ int main()
 		ImGui::DragFloat("p3", &cur_canvas.p3, 0.01f, -5, 5);
 		ImGui::DragFloat("p4", &cur_canvas.p4, 0.01f, -5, 45);
 		ImGui::DragFloat("p5", &cur_canvas.p5, 0.01f, -5, 5);
+		ImGui::DragInt("p6", &cur_canvas.p6, 0.1f, -100, 100);
 
 		if (ImGui::Button("Reset canvas view"))
 		{
@@ -145,6 +151,10 @@ int main()
 		{
 			cur_canvas.layers[0].clear(color_white);
 			cur_canvas.invalidate_texture();
+		}
+		if(ImGui::Button("Save"))
+		{
+			cur_canvas.save();
 		}
 
 		ImGui::Begin("Layers");
@@ -189,7 +199,7 @@ int main()
 		ImGui::SliderFloat("Anti-aliasing", &brush.aa, 0.1f, 1.0f);
 		ImGui::End();
 
-		ImGui::Begin("Color picker");
+		ImGui::Begin("Color");
 		ImGui::ColorPicker3("", cur_color);
 		ImGui::End();
 
@@ -198,6 +208,7 @@ int main()
 		cur_canvas.render(drawlist);
 
 		drawlist->AddCircle(io.MousePos, brushes[cur_brush].size * cur_canvas.matrix.m11, IM_COL32(0, 0, 0, 255));
+		
 
 		// Rendering
 		ImGui::Render();

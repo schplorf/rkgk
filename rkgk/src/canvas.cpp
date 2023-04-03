@@ -11,6 +11,9 @@
 
 #include "brush.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 
 canvas::canvas(const int width, const int height, const std::string& name)
 {
@@ -124,6 +127,7 @@ void canvas::handle_inputs(const ImGuiIO& io, float pressure)
 		stroke_pos_ = ImVec2(nx, ny);
 		prev_pressure_ = (np);
 		invalidate_texture();
+		return;
 	}
 
 	// stroke ended
@@ -138,6 +142,7 @@ void canvas::handle_inputs(const ImGuiIO& io, float pressure)
 void canvas::dab(const float cx, const  float cy, const  float pressure, const brush& brush, const color new_color)
 {
 	const float size = brush.get_size(pressure);
+
 	float r;
 	// arbitrary value fudging to make small brush sizes look nice
 	if (size < 2)
@@ -158,7 +163,7 @@ void canvas::dab(const float cx, const  float cy, const  float pressure, const b
 		{
 			const auto v1 = ImVec2(x, y);
 			const auto v2 = ImVec2(cx, cy);
-			float dist = distance(v1, v2);
+			const float dist = distance(v1, v2);
 			if (dist > r) continue;
 			const float aa = r - lerp(r, dist, brush.aa);
 			const float alpha = std::max(0.0f, std::min((float)new_color.a, (aa * 255) * p3));
@@ -226,7 +231,7 @@ void canvas::opengl_initialized()
 	glBindTexture(GL_TEXTURE_2D, texture_);
 
 	// Setup filtering parameters for display
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
@@ -256,4 +261,9 @@ void canvas::remove_layer(const int idx)
 	{
 		cur_layer--;
 	}
+}
+
+void canvas::save()
+{
+	stbi_write_bmp("img.bmp", width_, height_,4, layers[0].pixels);
 }

@@ -22,7 +22,8 @@ public:
 	matrix3x2 matrix = matrix3x2();
 	ImVector<layer> layers;
 	int cur_layer = -1;
-	float p1,p2,p3=1,p4=1,p5,p6;
+	float p1,p2,p3=1,p4=1,p5;
+	int p6 = 1;
 
 	canvas(int width, int height, const std::string& name);
 
@@ -39,9 +40,11 @@ public:
 	void add_layer();
 	void remove_layer( int idx);
 
+	void save();
+
 	int width() const { return width_; }
 	int height() const { return height_; }
-	int byte_count() const {return width_ * height_ * 4; } // 4 channels  (rgba)
+	int byte_count() const { return width_ * height_ * 4; } // 4 channels  (rgba)
 };
 
  

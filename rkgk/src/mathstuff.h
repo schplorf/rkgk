@@ -1,22 +1,16 @@
 ﻿#pragma once
 #include <cmath>
 
-
-inline float square(const float f)
-{
-	return f * f;
-}
-
 inline float distance(const ImVec2 p1, const ImVec2 p2)
 {
 	const auto dx = p2.x - p1.x;
 	const auto dy = p2.y - p1.y;
-    return std::sqrt(dx * dx + dy * dy);
+	return std::sqrt(dx * dx + dy * dy);
 }
 
-inline float lerp(float a, float b, float f)
+inline float lerp(const float a, const float b, const float f)
 {
-    return a + f * (b - a);
+	return a + f * (b - a);
 }
 
 class matrix3x2 {
@@ -24,7 +18,8 @@ public:
 	matrix3x2() : m11(1), m12(0), m21(0), m22(1), m31(0), m32(0) {}
 	matrix3x2(float a, float b, float c, float d, float e, float f) : m11(a), m12(b), m21(c), m22(d), m31(e), m32(f) {}
 
-	void translate(float x, float y) {
+	void translate(float x, float y)
+	{
 		m31 += m11 * x + m21 * y;
 		m32 += m12 * x + m22 * y;
 	}

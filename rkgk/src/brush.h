@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include <string>
+#include "mathstuff.h"
 
 struct brush
 {
 	std::string name;
-	float size = 1, min_size = 1;
+	float size = 1, min_size = 0;
 	int opacity = 255, min_opacity = 0;
 	bool size_pressure = false, opacity_pressure = false;
-	float spacing = .05f, aa = 1;
+	float spacing = 0.05f, aa = 0.5f;
 
 	explicit brush(const std::string& name)
 	{

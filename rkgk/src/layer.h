@@ -1,20 +1,29 @@
 ﻿#pragma once
+
 #include <string>
+#include "color.h"
 
-#include "globals.h"
-
-class canvas;
-
-class layer
+struct layer
 {
-	const canvas* canvas_;
-public:
-	unsigned char* pixels;
 	std::string name;
 	unsigned char opacity = 255;
+	unsigned char* pixels;
 
-	explicit layer(const canvas* canvas, const std::string& name);
-
-	void clear(color color) const;
+	layer(const std::string& name, const int byte_count)
+	{
+		this->name = name;
+		pixels = new unsigned char[byte_count];
+	}
+	
+	void clear(const color color, const int byte_count) const
+	{
+		for (auto i = 0; i < byte_count; i += 4)
+		{
+			pixels[i] = color.r;
+			pixels[i + 1] = color.g;
+			pixels[i + 2] = color.b;
+			pixels[i + 3] = color.a;
+		}
+	}
 };
 
